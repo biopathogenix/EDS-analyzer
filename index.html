@@ -182,7 +182,7 @@
   }
   .tab-btn.active { background: var(--bpx-brand-grad); color: #fff; }
 
-  #plotCanvas { width: 100%; min-height: 520px; }
+  #plotCanvas { width: 100%; min-height: 620px; }
 
   #runs { margin-top: 24px; display: flex; flex-direction: column; gap: 20px; }
   .run {
@@ -221,7 +221,7 @@
         <img src="https://biopathogenix.com/wp-content/uploads/2021/07/BioPathogenix-Horizontal-1.svg" alt="BioPathogenix Logo" onerror="this.style.display='none'">
       </div>
       <div class="brand-title">
-        <h1>QS Run Analyzer</h1>
+        <h1>QS Run Analyzer 1.0</h1>
         <p>Direct instrument runs &amp; re-analyzed software files supported</p>
       </div>
     </div>
@@ -231,7 +231,7 @@
   <div class="dropzone" id="dropzone">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
     <strong>Drop .eds files here</strong> or click to choose
-    <div class="hint">Accepts both original instrument runs and analyzed copies</div>
+    <div class="hint">(Accepts both original instrument runs and analyzed copies)</div>
     <input type="file" id="fileInput" accept=".eds" multiple>
   </div>
 
@@ -336,16 +336,23 @@
   <div id="runs"></div>
 
   <footer class="app-footer">
-    <span><strong>BioPathogenix</strong> — QS Run Analyzer</span>
-    <span>For Research Use Only. Not for use in diagnostic procedures.</span>
+    <span><strong>Copyright© 2026 Biopathogenix</strong> </span>
+    <span><strong> For Research Use Only. Not for use in diagnostic procedures.</strong> </span>
     <div class="legal-block">
-      Copyright © 2026 Biopathogenix. For Research Use Only. Not for use in diagnostic procedures.
-      This software is intended solely for research, investigative, or educational purposes. It has not been cleared, approved, or evaluated by the US Food and Drug Administration (FDA) or any other regulatory health authority for clinical diagnosis, patient management, or treatment decisions.
+            This software is intended solely for research, investigative, or educational purposes. It has not been cleared, approved, or evaluated by the US Food and Drug Administration (FDA) or any other regulatory health authority for clinical diagnosis, patient management, or treatment decisions.
     </div>
   </footer>
 </div>
 
 <script>
+// Escape untrusted strings (file names, sample/target names parsed from
+// uploaded .eds files) before interpolating them into innerHTML templates.
+function escapeHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
 const PALETTE = [
   "#1B5E20", "#1B7A8C", "#B9770E", "#7A4CA0", "#2E8B57",
   "#C0392B", "#2C6FBB", "#8D6E63", "#C2185B", "#5D8AA8",
@@ -1237,7 +1244,7 @@ function populateTargetAndSampleSelectors(){
 
   const sampleSel = document.getElementById("sampleSelector");
   const samples = [...new Set(run.rows.map(r => r.sample))].sort();
-  sampleSel.innerHTML = samples.map(s => `<option value="${s}" selected>${s}</option>`).join("");
+  sampleSel.innerHTML = samples.map(s => `<option value="${escapeHtml(s)}" selected>${escapeHtml(s)}</option>`).join("");
 
   if (!run.thresholdMap) run.thresholdMap = {};
   if (!Number.isFinite(run.cqConfCutoff)) run.cqConfCutoff = 0;
@@ -1302,7 +1309,7 @@ function syncTargetSelector(availableTargets) {
 
   targetSel.innerHTML = availableTargets.map(t => {
     const isSelected = currentSelected.size === 0 || currentSelected.has(t);
-    return `<option value="${t}" ${isSelected ? "selected" : ""}>${t}</option>`;
+    return `<option value="${escapeHtml(t)}" ${isSelected ? "selected" : ""}>${escapeHtml(t)}</option>`;
   }).join("");
 }
 
@@ -1500,20 +1507,24 @@ function renderPipelinePlot(rebuildSelectors = true){
     },
     xaxis: { title: "Cycle Number" },
     yaxis: {
-      title: "ΔRn",
+      title: { text: "ΔRn", standoff: 12 },
       type: isLog ? "log" : "linear",
       autorange: true,
       tickformat: ".2e",
-      exponentformat: "e"
+      exponentformat: "e",
+      automargin: true
     },
     shapes: shapes,
-    margin: { t: 45, r: 20, b: 40, l: 65 },
+    margin: { t: 45, r: 20, b: 130, l: 90 },
     hovermode: "closest",
     legend: {
       title: { text: `<b>${colorBy === 'target' ? 'Targets' : 'Samples'}</b>` },
-      orientation: "v",
-      x: 1.02,
-      y: 1
+      orientation: "h",
+      x: 0,
+      xanchor: "left",
+      y: -0.18,
+      yanchor: "top",
+      font: { size: 11 }
     }
   };
 
@@ -1568,8 +1579,8 @@ function renderPipelinePlot(rebuildSelectors = true){
       : (r.cq !== null && r.cq !== undefined && isFinite(r.cq) && r.cq > 0 ? r.cq.toFixed(2) : "Undetermined");
     return `
       <tr>
-        <td class="txt"><strong>${r.target}</strong></td>
-        <td class="txt">${r.sample}</td>
+        <td class="txt"><strong>${escapeHtml(r.target)}</strong></td>
+        <td class="txt">${escapeHtml(r.sample)}</td>
         <td>${displayCq}</td>
         <td>${Number.isFinite(Number(r.cqConf)) ? Number(r.cqConf).toFixed(2) : "–"}</td>
       </tr>
@@ -1776,7 +1787,7 @@ async function processFile(file){
   card.innerHTML = `
     <div class="run-head">
       <div>
-        <h3>${file.name}</h3>
+        <h3>${escapeHtml(file.name)}</h3>
         <div class="meta-grid" data-meta></div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -1800,7 +1811,7 @@ async function processFile(file){
     const { meta, rows, ampRecords, edsThresholdMap } = await parseEds(file);
 
     card.querySelector("[data-meta]").innerHTML = `
-      <div>Instrument <span>${meta.instrumentType}</span></div>
+      <div>Instrument <span>${escapeHtml(meta.instrumentType)}</span></div>
       <div>Start <span>${formatInstrumentTime(meta.startTime) || "–"}</span></div>
       <div>Duration <span>${formatDuration(meta.startTime, meta.endTime) || "–"}</span></div>
     `;
@@ -1834,8 +1845,8 @@ async function processFile(file){
         : "Undetermined";
       return `
         <tr>
-          <td class="txt"><strong>${r.target}</strong></td>
-          <td class="txt">${r.sample}</td>
+          <td class="txt"><strong>${escapeHtml(r.target)}</strong></td>
+          <td class="txt">${escapeHtml(r.sample)}</td>
           <td>${displayCq}</td>
         </tr>
       `;
