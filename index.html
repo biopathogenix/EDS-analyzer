@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BioPathogenix Customer Feedback Form</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #eef3f8;
+    --card: #ffffff;
+    --ink: #102033;
+    --muted: #63758c;
+    --line: #dbe4ee;
+    --blue: #234a8f;
+    --teal: #11796f;
+    --shadow: 0 18px 40px rgba(15, 28, 48, .10);
+  }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(35,74,143,.10), transparent 28%),
+      radial-gradient(circle at top right, rgba(17,121,111,.10), transparent 26%),
+      linear-gradient(180deg, #f7f9fc 0%, var(--bg) 100%);
+    color: var(--ink);
+    line-height: 1.5;
+    padding: 24px 16px 40px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(219,228,238,.95);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .hero {
+    position: relative;
+    background: linear-gradient(135deg, #071425 0%, #0d2441 52%, #123b4d 100%);
+    color: #fff;
+    padding: 20px 24px;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 85% 15%, rgba(255,255,255,.16), transparent 20%),
+      radial-gradient(circle at 10% 20%, rgba(80,220,255,.12), transparent 24%);
+    pointer-events: none;
+  }
+  .logo-slot {
+    width: 122px;
+    height: 122px;
+    flex: 0 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,.96);
+    border: 1px solid rgba(255,255,255,.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 28px rgba(0,0,0,.22);
+    position: relative;
+    z-index: 1;
+  }
+  .logo-img { width: 100%; height: 100%; object-fit: cover; }
+  .hero-copy {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    flex: 1 1 auto;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 122px;
+  }
+  .hero-copy h1 {
+    font-size: 27px;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 6px;
+  }
+  .hero-copy p {
+    max-width: 760px;
+    font-size: 14px;
+    color: rgba(255,255,255,.88);
+  }
+  .body { padding: 26px 28px 30px; }
+  .section { margin-top: 24px; }
+  .section:first-child { margin-top: 0; }
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .section-title h2 {
+    font-size: 14px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--blue);
+  }
+  .section-title span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .field { margin-bottom: 14px; }
+  .label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4d6178;
+  }
+  input[type=text], input[type=email], input[type=date], textarea {
+    width: 100%;
+    padding: 12px 13px;
+    border: 1.4px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(35,74,143,.08);
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  .panel {
+    border: 1.4px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+  }
+  .rating-head,
+  .rating-row {
+    display: grid;
+    grid-template-columns: minmax(170px, 1.4fr) repeat(5, minmax(30px, .35fr));
+    gap: 8px;
+    align-items: center;
+  }
+  .rating-head {
+    padding: 0 6px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .rating-row {
+    padding: 10px 6px;
+    border-top: 1px solid #edf2f7;
+  }
+  .rating-row:first-of-type { border-top: 0; }
+  .rating-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .rating-btns { display: contents; }
+  .rb {
+    width: 100%;
+    min-height: 38px;
+    border-radius: 8px;
+    border: 1.4px solid var(--line);
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    color: #5b6d84;
+    transition: all .15s;
+  }
+  .rb:hover { border-color: var(--blue); color: var(--blue); transform: translateY(-1px); }
+  .rb.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .pill-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1.4px solid var(--line);
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    color: #5b6d84;
+    transition: all .15s;
+  }
+  .pill:hover { border-color: var(--teal); color: var(--teal); }
+  .pill.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .actions { margin-top: 26px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 13px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, background .15s, opacity .15s;
+    font-family: inherit;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.primary { background: var(--blue); color: #fff; }
+  .btn.primary:hover { background: #1b3d75; }
+  .btn.primary:disabled { opacity: .65; cursor: not-allowed; transform: none; }
+  .btn.secondary { background: #fff; color: var(--blue); border: 1.4px solid var(--blue); }
+  .btn.secondary:hover { background: #eef4ff; }
+  .err {
+    background: #fff1f2;
+    border: 1px solid #f3b6bd;
+    color: #b42318;
+    padding: 13px 15px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    font-size: 14px;
+  }
+  .ok {
+    padding: 52px 28px;
+    text-align: center;
+  }
+  .check {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 700;
+  }
+  .ok h2 { font-size: 24px; margin-bottom: 10px; }
+  .ok p { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
+  .abar { max-width: 980px; margin: 14px auto 0; text-align: center; }
+  .alink {
+    color: #6b7c92;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .apanel {
+    margin-top: 12px;
+    background: #fff;
+    border: 1px solid #e4ebf4;
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(15,28,48,.06);
+    padding: 20px;
+    text-align: left;
+  }
+  .apanel h3 { font-size: 16px; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 7px 8px; text-align: left; border-bottom: 1px solid #edf2f7; vertical-align: top; }
+  th { background: #f7fafe; color: #43556a; white-space: nowrap; }
+  .muted { color: #8a97a6; font-size: 13px; }
+  .clr {
+    background: none;
+    border: 1px solid var(--line);
+    color: #6b7c92;
+    padding: 6px 11px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .clr:hover { border-color: #b42318; color: #b42318; }
+  @media (max-width: 840px) {
+    .hero { flex-direction: column; align-items: flex-start; }
+    .logo-slot { width: 100px; height: 100px; }
+    .grid { grid-template-columns: 1fr; }
+    .rating-head, .rating-row { grid-template-columns: minmax(135px, 1.2fr) repeat(5, minmax(26px, .35fr)); }
+    .hero-copy h1 { font-size: 22px; }
+  }
+  @media (max-width: 620px) {
+    body { padding: 14px 10px 30px; }
+    .body { padding: 20px 16px 24px; }
+    .rating-head { display: none; }
+    .rating-row { grid-template-columns: 1fr; gap: 10px; }
+    .rating-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .rating-btns .rb { min-height: 40px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const PK = "QXmszPN0KD4BJ5XrW";
+const SVC = "service_014gtcm";
+const TPL = "template_1mjq977";
+const RECIPIENT = "rajeswarigopu.eee@gmail.com";
+const SK = "bpx_customer_feedback";
+const LOGO = "OIP.jpg";
+
+const RATING_LABELS = [
+  "Professionalism",
+  "Customer Service",
+  "Value of Money",
+  "Delivery Time",
+  "Quality",
+  "Overall Satisfaction",
+];
+
+const ORDER_FREQ = ["Daily", "Weekly", "Monthly", "Occasionally", "Rarely"];
+const RECOMMEND = ["Very Likely", "Likely", "Neutral", "Unlikely", "Very unlikely"];
+const today = () => new Date().toISOString().slice(0, 10);
+
+const load = () => {
+  try {
+    const raw = localStorage.getItem(SK);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const save = (data) => {
+  try {
+    localStorage.setItem(SK, JSON.stringify(data));
+  } catch (e) {}
+};
+
+const esc = (v = "") =>
+  String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const nl2br = (v = "") => esc(v).replace(/\r?\n/g, "<br/>");
+const ratingValue = (ratings, label) => Number(ratings?.[label] || 0);
+const ratingOutOfFive = (ratings, label) => {
+  const n = ratingValue(ratings, label);
+  return n ? `${n}/5` : "";
+};
+const ratingStars = (ratings, label) => {
+  const n = Math.max(0, Math.min(5, ratingValue(ratings, label)));
+  return n ? `${"★".repeat(n)}${"☆".repeat(5 - n)}` : "";
+};
+
+const emailHTML = (r) => {
+  const ratingPills = (value) =>
+    [1, 2, 3, 4, 5]
+      .map(
+        (n) => `
+        <span style="
+          display:inline-block;
+          min-width:28px;
+          text-align:center;
+          padding:8px 0;
+          margin:0 4px 6px 0;
+          border-radius:7px;
+          font-size:13px;
+          font-weight:700;
+          background:${String(value) === String(n) ? "#3f4ea1" : "#f7f9fd"};
+          color:${String(value) === String(n) ? "#fff" : "#7b8ca5"};
+          border:1px solid ${String(value) === String(n) ? "#3f4ea1" : "#d8e1ee"};
+        ">${n}</span>`
+      )
+      .join("");
+
+  const chip = (text, on) => `
+    <span style="
+      display:inline-block;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid ${on ? "#11796f" : "#bfd3ee"};
+      background:${on ? "#11796f" : "#eef5ff"};
+      color:${on ? "#fff" : "#1c4ea3"};
+      font-size:13px;
+      font-weight:700;
+      line-height:1.2;
+      margin:0 6px 6px 0;
+    ">${esc(text)}</span>`;
+
+  const ratingValue = (label) => (r.ratings ? r.ratings[label] || "" : "");
+
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#12233f;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#f4f7fb;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:760px;border-collapse:collapse;background:#fff;border:1px solid #e6edf5;box-shadow:0 10px 24px rgba(17,31,53,.08);">
+          <tr>
+            <td style="background:#3f4ea1;padding:20px 24px;color:#fff;">
+              <div style="font-size:19px;font-weight:700;line-height:1.25;">New Customer Feedback Response</div>
+              <div style="margin-top:7px;font-size:13px;color:#eaf1ff;">Submitted ${r.submittedAt ? new Date(r.submittedAt).toLocaleString() : ""}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="background:#f7fafe;border:1px solid #e5edf6;border-radius:12px;padding:18px;">
+                    <div style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#3f4ea1;font-weight:700;margin-bottom:12px;">Customer Information</div>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                      <tr>
+                        <td width="50%" valign="top" style="padding:0 10px 12px 0;">
+                          <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7e8ea8;font-weight:700;margin-bottom:4px;">Company</div>
+                          <div style="font-size:15px;line-height:1.5;color:#12233f;"><strong>${esc(r.company)}</strong></div>
+                        </td>
+                        <td width="50%" valign="top" style="padding:0 10px 12px 0;">
+                          <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7e8ea8;font-weight:700;margin-bottom:4px;">Address</div>
+                          <div style="font-size:15px;line-height:1.5;color:#12233f;">${r.address ? nl2br(r.address) : "<span style='color:#8a97a6;'>No response</span>"}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td width="50%" valign="top" style="padding:0 10px 12px 0;">
+                          <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7e8ea8;font-weight:700;margin-bottom:4px;">Contact Details</div>
+                          <div style="font-size:15px;line-height:1.5;color:#12233f;">${r.contactDetails ? nl2br(r.contactDetails) : "<span style='color:#8a97a6;'>No response</span>"}</div>
+                        </td>
+                        <td width="50%" valign="top" style="padding:0 10px 12px 0;">
+                          <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7e8ea8;font-weight:700;margin-bottom:4px;">Completed By</div>
+                          <div style="font-size:15px;line-height:1.5;color:#12233f;">
+                            <strong>${esc(r.completedByName)}</strong><br/>
+                            ${esc(r.completedByTitle)}<br/>
+                            <a href="mailto:${esc(r.completedByEmail)}" style="color:#1c4ea3;text-decoration:none;">${esc(r.completedByEmail)}</a><br/>
+                            ${esc(r.contactNumber)}
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="padding-top:6px;">
+                          <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7e8ea8;font-weight:700;margin-bottom:4px;">Date</div>
+                          <div style="font-size:15px;line-height:1.5;color:#12233f;">${esc(r.date)}</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:22px;">
+                <tr><td style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#3f4ea1;font-weight:700;padding-bottom:8px;">Service Ratings</td></tr>
+                ${RATING_LABELS.map((label) => {
+                  const value = ratingValue(label);
+                  return `
+                    <tr>
+                      <td style="padding:0 0 10px;">
+                        <div style="font-size:14px;font-weight:700;color:#12233f;margin-bottom:6px;">${esc(label)}</div>
+                        <div>${ratingPills(value)}</div>
+                      </td>
+                    </tr>`;
+                }).join("")}
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:22px;">
+                <tr><td style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#3f4ea1;font-weight:700;padding-bottom:8px;">Ordering & Recommendation</td></tr>
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">How often do you order BioPathogenix products?</div>
+                    <div style="background:#f5f8fc;border:1px solid #e5edf6;border-radius:10px;padding:13px 15px;font-size:14px;line-height:1.6;">${esc(r.orderFrequency) || "<span style='color:#8a97a6;'>No response</span>"}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Likelihood to recommend</div>
+                    <div style="background:#f5f8fc;border:1px solid #e5edf6;border-radius:10px;padding:13px 15px;font-size:14px;line-height:1.6;">${esc(r.recommendLikelihood) || "<span style='color:#8a97a6;'>No response</span>"}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:22px;">
+                <tr><td style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#3f4ea1;font-weight:700;padding-bottom:8px;">Feedback</td></tr>
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Issues encountered and suggestions for improvement</div>
+                    <div style="background:#f5f8fc;border:1px solid #e5edf6;border-radius:10px;padding:13px 15px;font-size:14px;line-height:1.6;">${r.issues ? nl2br(r.issues) : "<span style='color:#8a97a6;'>No response</span>"}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Additional services or products requested</div>
+                    <div style="background:#f5f8fc;border:1px solid #e5edf6;border-radius:10px;padding:13px 15px;font-size:14px;line-height:1.6;">${r.additionalServices ? nl2br(r.additionalServices) : "<span style='color:#8a97a6;'>No response</span>"}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Additional comments</div>
+                    <div style="background:#f5f8fc;border:1px solid #e5edf6;border-radius:10px;padding:13px 15px;font-size:14px;line-height:1.6;">${r.additionalComments ? nl2br(r.additionalComments) : "<span style='color:#8a97a6;'>No response</span>"}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+const blankRatings = Object.fromEntries(RATING_LABELS.map((label) => [label, ""]));
+const blank = {
+  company: "",
+  address: "",
+  contactDetails: "",
+  ratings: blankRatings,
+  orderFrequency: "",
+  recommendLikelihood: "",
+  issues: "",
+  additionalServices: "",
+  additionalComments: "",
+  completedByName: "",
+  completedByTitle: "",
+  completedByEmail: "",
+  contactNumber: "",
+  date: today(),
+};
+
+function App() {
+  const [submitted, setSubmitted] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+  const [saved, setSaved] = useState(load);
+  const [errors, setErrors] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState(blank);
+
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const setRating = (label, value) =>
+    setForm((prev) => ({ ...prev, ratings: { ...prev.ratings, [label]: value } }));
+
+  const validate = () => {
+    const e = [];
+    if (!form.company.trim()) e.push("Company name is required");
+    if (!form.address.trim()) e.push("Address is required");
+    if (!form.contactDetails.trim()) e.push("Contact details are required");
+    RATING_LABELS.forEach((label) => {
+      if (!form.ratings[label]) e.push(`${label} rating is required`);
+    });
+    if (!form.orderFrequency) e.push("Order frequency is required");
+    if (!form.recommendLikelihood) e.push("Recommendation likelihood is required");
+    if (!form.issues.trim()) e.push("Issues / suggestions are required");
+    if (!form.additionalServices.trim()) e.push("Additional services or products are required");
+    if (!form.additionalComments.trim()) e.push("Additional comments are required");
+    if (!form.completedByName.trim()) e.push("Completed by name is required");
+    if (!form.completedByTitle.trim()) e.push("Completed by title is required");
+    if (!form.completedByEmail.trim()) e.push("Completed by e-mail is required");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.completedByEmail)) e.push("Enter a valid completed by e-mail");
+    if (!form.contactNumber.trim()) e.push("Contact number is required");
+    if (!form.date.trim()) e.push("Date is required");
+    return e;
+  };
+
+  const record = () => ({
+    submittedAt: new Date().toISOString(),
+    company: form.company,
+    address: form.address,
+    contactDetails: form.contactDetails,
+    ratings: form.ratings,
+    orderFrequency: form.orderFrequency,
+    recommendLikelihood: form.recommendLikelihood,
+    issues: form.issues,
+    additionalServices: form.additionalServices,
+    additionalComments: form.additionalComments,
+    completedByName: form.completedByName,
+    completedByTitle: form.completedByTitle,
+    completedByEmail: form.completedByEmail,
+    contactNumber: form.contactNumber,
+    date: form.date,
+  });
+
+  const submit = async () => {
+    const e = validate();
+    setErrors(e);
+    if (e.length) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const r = record();
+    setBusy(true);
+    try {
+      emailjs.init({ publicKey: PK });
+      const summary = [
+        `Company: ${r.company}`,
+        `Address: ${r.address}`,
+        `Contact Details: ${r.contactDetails}`,
+        `Ratings: ${RATING_LABELS.map((label) => `${label}=${r.ratings[label]}`).join(" | ")}`,
+        `Order Frequency: ${r.orderFrequency}`,
+        `Recommend: ${r.recommendLikelihood}`,
+        `Issues / Suggestions: ${r.issues}`,
+        `Additional Services: ${r.additionalServices}`,
+        `Additional Comments: ${r.additionalComments}`,
+        `Completed By: ${r.completedByName} (${r.completedByTitle})`,
+        `E-mail: ${r.completedByEmail}`,
+        `Contact Number: ${r.contactNumber}`,
+        `Date: ${r.date}`,
+      ].join("\n");
+      const htmlMessage = emailHTML(r);
+
+      await emailjs.send(SVC, TPL, {
+        to_email: RECIPIENT,
+        subject: `Customer Feedback - ${r.company}`,
+        from_name: r.completedByName,
+        reply_to: r.completedByEmail,
+        company_name: r.company,
+        address: r.address,
+        contact_details: r.contactDetails,
+        professionalism: r.ratings["Professionalism"] || "",
+        customer_service: r.ratings["Customer Service"] || "",
+        value_of_money: r.ratings["Value of Money"] || "",
+        delivery_time: r.ratings["Delivery Time"] || "",
+        quality: r.ratings["Quality"] || "",
+        overall_satisfaction: r.ratings["Overall Satisfaction"] || "",
+        professionalism_out_of_five: ratingOutOfFive(r.ratings, "Professionalism"),
+        customer_service_out_of_five: ratingOutOfFive(r.ratings, "Customer Service"),
+        value_of_money_out_of_five: ratingOutOfFive(r.ratings, "Value of Money"),
+        delivery_time_out_of_five: ratingOutOfFive(r.ratings, "Delivery Time"),
+        quality_out_of_five: ratingOutOfFive(r.ratings, "Quality"),
+        overall_satisfaction_out_of_five: ratingOutOfFive(r.ratings, "Overall Satisfaction"),
+        professionalism_stars: ratingStars(r.ratings, "Professionalism"),
+        customer_service_stars: ratingStars(r.ratings, "Customer Service"),
+        value_of_money_stars: ratingStars(r.ratings, "Value of Money"),
+        delivery_time_stars: ratingStars(r.ratings, "Delivery Time"),
+        quality_stars: ratingStars(r.ratings, "Quality"),
+        overall_satisfaction_stars: ratingStars(r.ratings, "Overall Satisfaction"),
+        ratings_json: JSON.stringify(r.ratings),
+        order_frequency: r.orderFrequency,
+        recommend_likelihood: r.recommendLikelihood,
+        issues: r.issues,
+        additional_services: r.additionalServices,
+        additional_comments: r.additionalComments,
+        completed_by_name: r.completedByName,
+        completed_by_title: r.completedByTitle,
+        completed_by_email: r.completedByEmail,
+        contact_number: r.contactNumber,
+        completed_date: r.date,
+        message: htmlMessage,
+        html_content: htmlMessage,
+        text_content: summary,
+      });
+
+      const next = [...saved, r];
+      setSaved(next);
+      save(next);
+      setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setErrors(["Failed: " + (err?.text || err?.message || JSON.stringify(err))]);
+    }
+    setBusy(false);
+  };
+
+  const reset = () => {
+    setForm({ ...blank, date: today() });
+    setSubmitted(false);
+    setErrors([]);
+  };
+
+  const exportCsv = () => {
+    if (!saved.length) return;
+    const cols = [
+      "submittedAt",
+      "company",
+      "address",
+      "contactDetails",
+      "orderFrequency",
+      "recommendLikelihood",
+      "issues",
+      "additionalServices",
+      "additionalComments",
+      "completedByName",
+      "completedByTitle",
+      "completedByEmail",
+      "contactNumber",
+      "date",
+    ];
+    const escCsv = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    const lines = [cols.join(","), ...saved.map((row) => cols.map((c) => escCsv(row[c])).join(","))].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines], { type: "text/csv" }));
+    a.download = "bpx_customer_feedback.csv";
+    a.click();
+  };
+
+  const clearAll = () => {
+    if (window.confirm("Delete all saved responses?")) {
+      setSaved([]);
+      localStorage.removeItem(SK);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="wrap">
+        <div className="card">
+          <div className="hero">
+            <div className="logo-slot"><img src={LOGO} alt="BioPathogenix" className="logo-img" /></div>
+            <div className="hero-copy">
+              <h1>Thank you</h1>
+              <p>Your customer feedback form has been submitted successfully.</p>
+            </div>
+          </div>
+          <div className="ok">
+            <div className="check">✓</div>
+            <h2>Submission Complete</h2>
+            <p>We received your response and sent it to the configured EmailJS recipient.</p>
+            <button className="btn primary" onClick={reset}>Submit Another Response</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="wrap">
+      <div className="card">
+        <div className="hero">
+          <div className="logo-slot"><img src={LOGO} alt="BioPathogenix" className="logo-img" /></div>
+          <div className="hero-copy">
+            <h1>BioPathogenix Customer Feedback Form</h1>
+            <p>Please complete the form based on your most recent experience. The 5-point scale uses 5 for extremely satisfied and 1 for extremely unsatisfied.</p>
+          </div>
+        </div>
+        <div className="body">
+          {errors.length > 0 && <div className="err"><strong>Please fix the following:</strong><ul style={{ marginTop: 8, paddingLeft: 18 }}>{errors.map((e, i) => <li key={i}>{e}</li>)}</ul></div>}
+
+          <div className="section">
+            <div className="section-title"><h2>Customer Information</h2><span>Required fields</span></div>
+            <div className="grid">
+              <div className="field">
+                <label className="label">Name of Company</label>
+                <input type="text" value={form.company} onChange={(e) => set("company", e.target.value)} placeholder="Company name" />
+              </div>
+              <div className="field">
+                <label className="label">Contact Details</label>
+                <input type="text" value={form.contactDetails} onChange={(e) => set("contactDetails", e.target.value)} placeholder="Phone, email, or best contact info" />
+              </div>
+            </div>
+            <div className="field">
+              <label className="label">Address</label>
+              <textarea value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Street, city, state, ZIP" />
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="section-title"><h2>Service Rating</h2><span>1 = extremely unsatisfied, 5 = extremely satisfied</span></div>
+            <div className="panel">
+              <div className="rating-head">
+                <div>Aspect</div>
+                <div style={{textAlign:"center"}}>1</div>
+                <div style={{textAlign:"center"}}>2</div>
+                <div style={{textAlign:"center"}}>3</div>
+                <div style={{textAlign:"center"}}>4</div>
+                <div style={{textAlign:"center"}}>5</div>
+              </div>
+              {RATING_LABELS.map((label) => (
+                <div className="rating-row" key={label}>
+                  <div className="rating-label">{label}</div>
+                  <div className="rating-btns">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={"rb " + (form.ratings[label] === String(n) ? "on" : "")}
+                        onClick={() => setRating(label, String(n))}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="section-title"><h2>Ordering</h2><span>How often do you order BioPathogenix products?</span></div>
+            <div className="pill-group">
+              {ORDER_FREQ.map((item) => (
+                <button key={item} type="button" className={"pill " + (form.orderFrequency === item ? "on" : "")} onClick={() => set("orderFrequency", item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="section-title"><h2>Recommendation</h2><span>Likelihood to recommend BioPathogenix products</span></div>
+            <div className="pill-group">
+              {RECOMMEND.map((item) => (
+                <button key={item} type="button" className={"pill " + (form.recommendLikelihood === item ? "on" : "")} onClick={() => set("recommendLikelihood", item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="section-title"><h2>Feedback</h2><span>Open-ended responses</span></div>
+            <div className="field">
+              <label className="label">Issues encountered and suggestions for improvement</label>
+              <textarea value={form.issues} onChange={(e) => set("issues", e.target.value)} placeholder="Tell us what happened and how we can improve" />
+            </div>
+            <div className="field">
+              <label className="label">Additional services or products you would like BioPathogenix to offer</label>
+              <textarea value={form.additionalServices} onChange={(e) => set("additionalServices", e.target.value)} placeholder="Share your ideas" />
+            </div>
+            <div className="field">
+              <label className="label">Additional comments or feedback</label>
+              <textarea value={form.additionalComments} onChange={(e) => set("additionalComments", e.target.value)} placeholder="Anything else you want to add" />
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="section-title"><h2>Completed By</h2><span>Submission details</span></div>
+            <div className="grid">
+              <div className="field">
+                <label className="label">Name</label>
+                <input type="text" value={form.completedByName} onChange={(e) => set("completedByName", e.target.value)} placeholder="Your name" />
+              </div>
+              <div className="field">
+                <label className="label">Title</label>
+                <input type="text" value={form.completedByTitle} onChange={(e) => set("completedByTitle", e.target.value)} placeholder="Your title" />
+              </div>
+            </div>
+            <div className="grid">
+              <div className="field">
+                <label className="label">E-mail address</label>
+                <input type="email" value={form.completedByEmail} onChange={(e) => set("completedByEmail", e.target.value)} placeholder="name@company.com" />
+              </div>
+              <div className="field">
+                <label className="label">Contact Number</label>
+                <input type="text" value={form.contactNumber} onChange={(e) => set("contactNumber", e.target.value)} placeholder="Phone number" />
+              </div>
+            </div>
+            <div className="field" style={{maxWidth: 280}}>
+              <label className="label">Date</label>
+              <input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="actions">
+            <button className="btn primary" onClick={submit} disabled={busy}>{busy ? "Sending..." : "Submit Feedback"}</button>
+            <button className="btn secondary" onClick={reset} type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="abar">
+        <button className="alink" onClick={() => setShowSaved((v) => !v)}>{showSaved ? "Hide saved responses" : "Show saved responses"}</button>
+        {showSaved && (
+          <div className="apanel">
+            <h3>Saved Responses</h3>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              <button className="clr" onClick={exportCsv}>Export CSV</button>
+              <button className="clr" onClick={clearAll}>Delete All</button>
+              <span className="muted">{saved.length} saved response(s)</span>
+            </div>
+            {saved.length ? (
+              <div style={{ overflowX: "auto" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Submitted</th>
+                      <th>Company</th>
+                      <th>Order Frequency</th>
+                      <th>Recommend</th>
+                      <th>Completed By</th>
+                      <th>E-mail</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saved.slice().reverse().map((r, i) => (
+                      <tr key={i}>
+                        <td>{new Date(r.submittedAt).toLocaleString()}</td>
+                        <td>{r.company}</td>
+                        <td>{r.orderFrequency}</td>
+                        <td>{r.recommendLikelihood}</td>
+                        <td>{r.completedByName}</td>
+                        <td>{r.completedByEmail}</td>
+                        <td>{r.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="muted">No saved responses yet.</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
