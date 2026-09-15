@@ -241,6 +241,13 @@
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--bpx-navy);cursor:pointer;">
         <input type="checkbox" id="showTablesToggle"> Show all tables
       </label>
+      <label for="downloadAllScope" style="font-size:12px;font-weight:600;color:var(--bpx-navy);display:flex;align-items:center;gap:6px;">
+        Batch export:
+        <select id="downloadAllScope" style="border:1px solid var(--bpx-line);border-radius:var(--bpx-radius-sm);padding:6px 8px;font-size:12.5px;background:#fff;color:var(--bpx-ink);">
+          <option value="selected">Selected targets &amp; samples</option>
+          <option value="full">Full plate</option>
+        </select>
+      </label>
       <button id="downloadAllBtn">Download All Summaries (Excel)</button>
     </div>
   </div>
@@ -248,7 +255,14 @@
   <div id="pipelineSection">
     <div class="pipeline-header">
       <h2>Interactive Run Analysis & Target-Specific Thresholds</h2>
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+        <label for="exportScope" style="font-size:12px;font-weight:600;color:var(--bpx-navy);display:flex;align-items:center;gap:6px;">
+          Export:
+          <select id="exportScope" style="border:1px solid var(--bpx-line);border-radius:var(--bpx-radius-sm);padding:6px 8px;font-size:12.5px;background:#fff;color:var(--bpx-ink);">
+            <option value="selected">Selected targets &amp; samples</option>
+            <option value="full">Full plate</option>
+          </select>
+        </label>
         <button class="secondary" id="exportPlotImgBtn">Export Plot as PNG</button>
         <button class="secondary" id="exportExcelBtn">Export Summary to Excel</button>
       </div>
@@ -1175,11 +1189,12 @@ function buildEffectiveThresholdMap(run){
   return out;
 }
 
-function buildWorkbookForRun(run) {
+function buildWorkbookForRun(run, exportRows = null, scopeLabel = "Full plate") {
   const { meta, rows } = run;
+  const rowsToExport = Array.isArray(exportRows) ? exportRows : rows;
   const effectiveThresholdMap = buildEffectiveThresholdMap(run);
 
-  const data = rows.map(r => {
+  const data = rowsToExport.map(r => {
     const targetThresh = getThresholdForTarget(run, r.target);
     const calcCt = calculateCtAtThreshold(r.drn, targetThresh);
     const finalCq = (calcCt !== null && isFinite(calcCt) && calcCt > 0)
@@ -1202,7 +1217,8 @@ function buildWorkbookForRun(run) {
     { "Parameter": "Instrument Name", "Value": meta.instrumentName },
     { "Parameter": "Block Type", "Value": meta.blockType },
     { "Parameter": "Analysis Method", "Value": meta.cqMethod },
-    { "Parameter": "Total Reactions", "Value": rows.length },
+    { "Parameter": "Export Scope", "Value": scopeLabel },
+    { "Parameter": "Total Reactions", "Value": rowsToExport.length },
     { "Parameter": "Threshold Source", "Value": run.useEdsThreshold ? "EDS file" : "Manual / Auto Analyzer" }
   ];
 
@@ -1218,7 +1234,8 @@ function buildWorkbookForRun(run) {
   XLSX.utils.book_append_sheet(wb, wsMeta, "Analysis_Parameters");
 
   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const fname = `${meta.fileName.replace(/\.eds$/i, "")}_Cq_Results.xlsx`;
+  const suffix = scopeLabel === "Full plate" ? "Full_Plate" : "Selected";
+  const fname = `${meta.fileName.replace(/\.eds$/i, "")}_${suffix}_Cq_Results.xlsx`;
   return { buffer: wbout, fname };
 }
 
@@ -1730,11 +1747,32 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   });
 });
 
+function getCurrentExportSelection() {
+  const targetSel = document.getElementById("targetSelector");
+  const sampleSel = document.getElementById("sampleSelector");
+  return {
+    targets: new Set(Array.from(targetSel.selectedOptions).map(o => o.value)),
+    samples: new Set(Array.from(sampleSel.selectedOptions).map(o => o.value))
+  };
+}
+
+function getSelectedExportRows(run, selection = null) {
+  const chosen = selection || getCurrentExportSelection();
+  return run.rows.filter(r => !r.omitted && chosen.targets.has(r.target) && chosen.samples.has(r.sample));
+}
+
 document.getElementById("exportExcelBtn").addEventListener("click", () => {
   const run = loadedRuns[activeRunIndex];
   if (!run) return;
 
-  const { buffer, fname } = buildWorkbookForRun(run);
+  const scope = document.getElementById("exportScope").value;
+  const exportRows = scope === "selected" ? getSelectedExportRows(run) : run.rows;
+  if (scope === "selected" && !exportRows.length) {
+    alert("No selected target/sample reactions are available to export.");
+    return;
+  }
+  const scopeLabel = scope === "selected" ? "Selected targets & samples" : "Full plate";
+  const { buffer, fname } = buildWorkbookForRun(run, exportRows, scopeLabel);
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1747,8 +1785,28 @@ document.getElementById("exportExcelBtn").addEventListener("click", () => {
 downloadAllBtn.addEventListener("click", async () => {
   if (!loadedRuns.length) return;
 
+  const scope = document.getElementById("downloadAllScope").value;
+  const selection = scope === "selected" ? getCurrentExportSelection() : null;
+  const scopeLabel = scope === "selected" ? "Selected targets & samples" : "Full plate";
+
+  if (scope === "selected" && (!selection.targets.size || !selection.samples.size)) {
+    alert("Select at least one target and one sample before batch export.");
+    return;
+  }
+
+  const batch = loadedRuns.map(run => ({
+    run,
+    exportRows: scope === "selected" ? getSelectedExportRows(run, selection) : run.rows
+  }));
+
+  if (scope === "selected" && !batch.some(item => item.exportRows.length)) {
+    alert("No reactions matching the selected targets/samples were found in the loaded runs.");
+    return;
+  }
+
   if (loadedRuns.length === 1) {
-    const { buffer, fname } = buildWorkbookForRun(loadedRuns[0]);
+    const { run, exportRows } = batch[0];
+    const { buffer, fname } = buildWorkbookForRun(run, exportRows, scopeLabel);
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1762,23 +1820,26 @@ downloadAllBtn.addEventListener("click", async () => {
   downloadAllBtn.disabled = true;
   downloadAllBtn.textContent = "Zipping Files…";
 
-  const zip = new JSZip();
-  loadedRuns.forEach(run => {
-    const { buffer, fname } = buildWorkbookForRun(run);
-    zip.file(fname, buffer);
-  });
+  try {
+    const zip = new JSZip();
+    batch.forEach(({ run, exportRows }) => {
+      const { buffer, fname } = buildWorkbookForRun(run, exportRows, scopeLabel);
+      zip.file(fname, buffer);
+    });
 
-  const content = await zip.generateAsync({ type: "blob" });
-  const url = URL.createObjectURL(content);
-  const a = document.createElement("a");
-  const d = new Date();
-  a.download = `All_Runs_Summary_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.zip`;
-  a.href = url;
-  a.click();
-  URL.revokeObjectURL(url);
-
-  downloadAllBtn.disabled = false;
-  downloadAllBtn.textContent = "Download All Summaries (Excel)";
+    const content = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement("a");
+    const d = new Date();
+    const scopeSuffix = scope === "selected" ? "Selected" : "Full_Plate";
+    a.download = `All_Runs_${scopeSuffix}_Summary_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.zip`;
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    downloadAllBtn.disabled = false;
+    downloadAllBtn.textContent = "Download All Summaries (Excel)";
+  }
 });
 
 async function processFile(file){
