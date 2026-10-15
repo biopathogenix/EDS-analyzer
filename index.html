@@ -209,6 +209,22 @@
   tbody td { padding: 6px 12px; border-bottom: 1px solid #EEF0F2; white-space: nowrap; font-family: var(--bpx-font-mono); }
   tbody td.txt { font-family: var(--bpx-font-sans); }
   tbody tr:hover { background: #FAFBFD; }
+
+  .dual-range{ position:relative; height:22px; margin-top:6px; }
+  .dual-range-track{ position:absolute; left:0; right:0; top:9px; height:4px; border-radius:2px; background:var(--bpx-line); }
+  .dual-range-fill{ position:absolute; top:9px; height:4px; border-radius:2px; background:var(--bpx-forest-deep); }
+  .dual-range input[type=range]{ position:absolute; left:0; top:0; width:100%; height:22px; margin:0; background:none; pointer-events:none; -webkit-appearance:none; appearance:none; accent-color:var(--bpx-forest-deep); }
+  .dual-range input[type=range]::-webkit-slider-runnable-track{ background:transparent; height:22px; }
+  .dual-range input[type=range]::-moz-range-track{ background:transparent; }
+  .dual-range input[type=range]::-webkit-slider-thumb{ pointer-events:auto; -webkit-appearance:none; appearance:none; width:16px; height:16px; margin-top:3px; border-radius:50%; background:var(--bpx-forest-deep); border:2px solid #fff; box-shadow:0 0 0 1px var(--bpx-forest-deep); cursor:pointer; }
+  .dual-range input[type=range]::-moz-range-thumb{ pointer-events:auto; width:12px; height:12px; border-radius:50%; background:var(--bpx-forest-deep); border:2px solid #fff; box-shadow:0 0 0 1px var(--bpx-forest-deep); cursor:pointer; }
+
+  .ct-banner{ margin-top:8px; padding:8px 10px; border-radius:6px; border:1px solid var(--bpx-line); border-left:4px solid var(--bpx-forest-deep); background:rgba(0,0,0,0.03); font-size:11px; line-height:1.45; color:var(--bpx-muted); }
+  .ct-banner.active{ border-left-color:#d98e04; background:rgba(217,142,4,0.08); }
+  .ct-banner-title{ font-weight:700; color:var(--bpx-navy); margin-bottom:2px; }
+  .ct-banner b.det{ color:var(--bpx-forest-deep); }
+  .ct-banner b.undet{ color:#b3261e; }
+  .ct-banner-counts{ margin-top:4px; font-family:var(--bpx-font-mono); font-size:11px; color:var(--bpx-navy); }
 </style>
 </head>
 <body>
@@ -306,11 +322,20 @@
 
         <div>
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label for="maxCtSlider" style="font-weight:600; margin:0;">Maximum Ct Filter:</label>
-            <span id="maxCtValue" style="font-family:var(--bpx-font-mono); font-size:12px; font-weight:700; color:var(--bpx-navy);">Off</span>
+            <label style="font-weight:600; margin:0;">Ct Range Filter:</label>
+            <span id="ctRangeValue" style="font-family:var(--bpx-font-mono); font-size:12px; font-weight:700; color:var(--bpx-navy);">Off</span>
           </div>
-          <input type="range" id="maxCtSlider" min="10" max="45" step="0.5" value="45" style="width:100%; accent-color:var(--bpx-forest-deep); margin-top:5px;">
-          <div id="maxCtInfo" style="font-size:11px;color:var(--bpx-muted);margin-top:2px;line-height:1.35;">Slide right to remove reactions below the selected Ct. 0 (Off) displays all.</div>
+          <div class="dual-range" id="ctDualRange">
+            <div class="dual-range-track"></div>
+            <div class="dual-range-fill" id="ctRangeFill"></div>
+            <input type="range" id="minCtSlider" min="0" max="45" step="0.5" value="0" aria-label="Minimum Ct">
+            <input type="range" id="maxCtSlider" min="0" max="45" step="0.5" value="45" aria-label="Maximum Ct">
+          </div>
+          <div id="ctRangeBanner" class="ct-banner">
+            <div class="ct-banner-title">How Determined / Undetermined is chosen</div>
+            <div id="ctBannerRule" class="ct-banner-rule"></div>
+            <div id="ctBannerCounts" class="ct-banner-counts"></div>
+          </div>
         </div>
 
         <div>
@@ -1216,6 +1241,68 @@ async function parseEds(file){
   return { meta, rows, ampRecords, edsThresholdMap: edsThresholds.byTarget };
 }
 
+const CT_SLIDER_MAX = 45;
+function getCtRange(run){
+  let lo = Number.isFinite(run.minCtCutoff) ? run.minCtCutoff : 0;
+  let hi = Number.isFinite(run.maxCtCutoff) ? run.maxCtCutoff : CT_SLIDER_MAX;
+  if (lo > hi) [lo, hi] = [hi, lo];
+  return { lo, hi, active: lo > 0 || hi < CT_SLIDER_MAX };
+}
+function ctOutsideRange(run, ct){
+  const { lo, hi, active } = getCtRange(run);
+  if (!active) return false;
+  if (ct === null || ct === undefined || !Number.isFinite(ct)) return true;
+  return ct < lo || ct > hi;
+}
+function formatCtRangeLabel(run){
+  const { lo, hi, active } = getCtRange(run);
+  return active ? `${lo.toFixed(1)} – ${hi.toFixed(1)}` : "Off";
+}
+function getRowFinalCt(run, r){
+  const t = getThresholdForTarget(run, r.target);
+  const c = calculateCtAtThreshold(r.drn, t);
+  if (c !== null && isFinite(c) && c > 0) return c;
+  return (r.cq !== null && r.cq !== undefined && isFinite(r.cq) && r.cq > 0) ? r.cq : null;
+}
+function updateCtBanner(run){
+  const banner = document.getElementById("ctRangeBanner");
+  const rule = document.getElementById("ctBannerRule");
+  const counts = document.getElementById("ctBannerCounts");
+  if (!banner || !rule || !counts) return;
+  const { lo, hi, active } = getCtRange(run);
+  banner.classList.toggle("active", active);
+  if (!active){
+    rule.innerHTML = 'Move the handles to set a range: <b>Ct &lt; Min</b> or <b>Ct &gt; Max</b> becomes <b class="undet">Undetermined</b>.';
+
+ } else {
+    rule.innerHTML = `<b class="det">Determined</b>: Ct from <b>${lo.toFixed(1)}</b> to <b>${hi.toFixed(1)}</b> (inclusive).<br><b class="undet">Undetermined</b>: Ct &lt; ${lo.toFixed(1)}, Ct &gt; ${hi.toFixed(1)}, or no Ct calculated. Undetermined reactions are hidden from the plot and exported as "Undetermined" in Excel.`;
+  }
+  let det = 0, und = 0;
+  (run.rows || []).forEach(r => {
+    const ct = getRowFinalCt(run, r);
+    if (ct === null || ctOutsideRange(run, ct)) und++; else det++;
+  });
+  counts.textContent = `Current run: ${det} determined · ${und} undetermined`;
+}
+function updateCtRangeUI(run){
+  const minS = document.getElementById("minCtSlider");
+  const maxS = document.getElementById("maxCtSlider");
+  const lbl = document.getElementById("ctRangeValue");
+  const fill = document.getElementById("ctRangeFill");
+  if (!minS || !maxS) return;
+  const { lo, hi } = getCtRange(run);
+  minS.value = lo; maxS.value = hi;
+  if (lbl) lbl.textContent = formatCtRangeLabel(run);
+  updateCtBanner(run);
+  if (fill){
+    fill.style.left = (lo / CT_SLIDER_MAX * 100) + "%";
+    fill.style.width = ((hi - lo) / CT_SLIDER_MAX * 100) + "%";
+  }
+  // keep the thumb that is on top reachable when both sit at the same end
+  minS.style.zIndex = lo >= CT_SLIDER_MAX - 0.5 ? 3 : 2;
+  maxS.style.zIndex = 2;
+}
+
 function buildEffectiveThresholdMap(run){
   const out = {};
   [...new Set(run.rows.map(r => r.target))].forEach(t => { out[t] = getThresholdForTarget(run, t); });
@@ -1230,9 +1317,11 @@ function buildWorkbookForRun(run, exportRows = null, scopeLabel = "Full plate") 
   const data = rowsToExport.map(r => {
     const targetThresh = getThresholdForTarget(run, r.target);
     const calcCt = calculateCtAtThreshold(r.drn, targetThresh);
-    const finalCq = (calcCt !== null && isFinite(calcCt) && calcCt > 0)
+    let finalCq = (calcCt !== null && isFinite(calcCt) && calcCt > 0)
       ? Number(calcCt.toFixed(2))
       : (r.cq !== null && r.cq !== undefined && isFinite(r.cq) && r.cq > 0 ? Number(r.cq.toFixed(2)) : "Undetermined");
+    if (finalCq !== "Undetermined" && ctOutsideRange(run, finalCq)) finalCq = "Undetermined";
+    else if (finalCq === "Undetermined") { /* already undetermined */ }
     return {
       "Target": r.target,
       "Sample": r.sample,
@@ -1252,7 +1341,8 @@ function buildWorkbookForRun(run, exportRows = null, scopeLabel = "Full plate") 
     { "Parameter": "Analysis Method", "Value": meta.cqMethod },
     { "Parameter": "Export Scope", "Value": scopeLabel },
     { "Parameter": "Total Reactions", "Value": rowsToExport.length },
-    { "Parameter": "Threshold Source", "Value": run.useEdsThreshold ? "EDS file" : "Manual / Auto Analyzer" }
+    { "Parameter": "Threshold Source", "Value": run.useEdsThreshold ? "EDS file" : "Manual / Auto Analyzer" },
+    { "Parameter": "Ct Range Filter", "Value": getCtRange(run).active ? `Min ${getCtRange(run).lo} / Max ${getCtRange(run).hi} (outside range = Undetermined)` : "Off" }
   ];
 
   targets.forEach(t => {
@@ -1306,6 +1396,7 @@ function populateTargetAndSampleSelectors(){
   if (!run.thresholdMap) run.thresholdMap = {};
   if (!Number.isFinite(run.cqConfCutoff)) run.cqConfCutoff = 0;
   if (!Number.isFinite(run.maxCtCutoff)) run.maxCtCutoff = 45;
+  if (!Number.isFinite(run.minCtCutoff)) run.minCtCutoff = 0;
 
   const cqSlider = document.getElementById("cqConfSlider");
   const cqValue = document.getElementById("cqConfValue");
@@ -1327,12 +1418,7 @@ function populateTargetAndSampleSelectors(){
     }
   }
 
-  const maxCtSlider = document.getElementById("maxCtSlider");
-  const maxCtValue = document.getElementById("maxCtValue");
-  if (maxCtSlider && maxCtValue) {
-    maxCtSlider.value = run.maxCtCutoff;
-    maxCtValue.textContent = run.maxCtCutoff >= 45 ? "Off" : run.maxCtCutoff.toFixed(1);
-  }
+  updateCtRangeUI(run);
 
   const allTargets = [...new Set(run.rows.map(r => r.target))];
   allTargets.forEach(t => {
@@ -1488,7 +1574,6 @@ function renderPipelinePlot(rebuildSelectors = true){
   const isLog = document.getElementById("logScaleToggle").checked;
 
   const cqConfCutoff = Number.isFinite(run.cqConfCutoff) ? run.cqConfCutoff : 0;
-  const maxCtCutoff = Number.isFinite(run.maxCtCutoff) ? run.maxCtCutoff : 45;
 
   let dataset = run.rows.filter(r => !r.omitted);
 
@@ -1507,19 +1592,9 @@ function renderPipelinePlot(rebuildSelectors = true){
     r._effectiveCt = (ct !== null && isFinite(ct)) ? ct : (r.cq !== null && isFinite(r.cq) ? r.cq : null);
   });
 
-  if (maxCtCutoff < 45) {
-    const validTargetsWithQualifyingCt = new Set();
-    dataset.forEach(r => {
-      if (r._effectiveCt !== null && r._effectiveCt <= maxCtCutoff) {
-        validTargetsWithQualifyingCt.add(r.target);
-      }
-    });
-
-    dataset = dataset.filter(r =>
-      validTargetsWithQualifyingCt.has(r.target) &&
-      r._effectiveCt !== null &&
-      r._effectiveCt <= maxCtCutoff
-    );
+  updateCtBanner(run);
+  if (getCtRange(run).active) {
+    dataset = dataset.filter(r => !ctOutsideRange(run, r._effectiveCt));
   }
 
   const validTargets = [...new Set(dataset.map(r => r.target))].sort();
@@ -1703,11 +1778,12 @@ function renderPipelinePlot(rebuildSelectors = true){
     const displayCq = (calcCt !== null && isFinite(calcCt) && calcCt > 0)
       ? calcCt.toFixed(2)
       : (r.cq !== null && r.cq !== undefined && isFinite(r.cq) && r.cq > 0 ? r.cq.toFixed(2) : "Undetermined");
+    const displayCqFinal = (displayCq !== "Undetermined" && ctOutsideRange(run, parseFloat(displayCq))) ? "Undetermined" : displayCq;
     return `
       <tr>
         <td class="txt"><strong>${escapeHtml(r.target)}</strong></td>
         <td class="txt">${escapeHtml(r.sample)}</td>
-        <td>${displayCq}</td>
+        <td>${displayCqFinal}</td>
         <td>${Number.isFinite(Number(r.cqConf)) ? Number(r.cqConf).toFixed(2) : "–"}</td>
       </tr>
     `;
@@ -1811,14 +1887,21 @@ document.getElementById("cqConfSlider").addEventListener("input", e => {
   renderPipelinePlot(true);
 });
 
-document.getElementById("maxCtSlider").addEventListener("input", e => {
+function onCtSliderInput(which){
   const run = loadedRuns[activeRunIndex];
   if (!run) return;
-  const val = Math.max(0, Math.min(45, parseFloat(e.target.value) || 0));
-  run.maxCtCutoff = val;
-  document.getElementById("maxCtValue").textContent = val >= 45 ? "Off" : val.toFixed(1);
+  const minS = document.getElementById("minCtSlider");
+  const maxS = document.getElementById("maxCtSlider");
+  let lo = Math.max(0, Math.min(CT_SLIDER_MAX, parseFloat(minS.value) || 0));
+  let hi = Math.max(0, Math.min(CT_SLIDER_MAX, parseFloat(maxS.value) || 0));
+  if (lo > hi) { if (which === "min") lo = hi; else hi = lo; }
+  run.minCtCutoff = lo;
+  run.maxCtCutoff = hi;
+  updateCtRangeUI(run);
   renderPipelinePlot(true);
-});
+}
+document.getElementById("minCtSlider").addEventListener("input", () => onCtSliderInput("min"));
+document.getElementById("maxCtSlider").addEventListener("input", () => onCtSliderInput("max"));
 
 document.getElementById("useEdsThresholdCheck").addEventListener("change", e => {
   const run = loadedRuns[activeRunIndex];
@@ -1913,6 +1996,7 @@ async function exportReanalyzedEds(run) {
     thresholdMap: effectiveThresholdMap,
     cqConfCutoff: Number.isFinite(run.cqConfCutoff) ? run.cqConfCutoff : 0,
     maxCtCutoff: Number.isFinite(run.maxCtCutoff) ? run.maxCtCutoff : 45,
+    minCtCutoff: Number.isFinite(run.minCtCutoff) ? run.minCtCutoff : 0,
     note: "Re-analysis metadata created by QS Run Analyzer. Original EDS contents are preserved."
   };
 
@@ -2075,7 +2159,8 @@ async function processFile(file){
       edsThresholdMap: edsThresholdMap || {},
       useEdsThreshold: hasEdsThreshold,
       cqConfCutoff: meta.reanalysisInfo && Number.isFinite(Number(meta.reanalysisInfo.cqConfCutoff)) ? Number(meta.reanalysisInfo.cqConfCutoff) : 0,
-      maxCtCutoff: meta.reanalysisInfo && Number.isFinite(Number(meta.reanalysisInfo.maxCtCutoff)) ? Number(meta.reanalysisInfo.maxCtCutoff) : 45
+      maxCtCutoff: meta.reanalysisInfo && Number.isFinite(Number(meta.reanalysisInfo.maxCtCutoff)) ? Number(meta.reanalysisInfo.maxCtCutoff) : 45,
+      minCtCutoff: meta.reanalysisInfo && Number.isFinite(Number(meta.reanalysisInfo.minCtCutoff)) ? Number(meta.reanalysisInfo.minCtCutoff) : 0
     };
     loadedRuns.push(runRecord);
 
